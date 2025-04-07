@@ -33,7 +33,6 @@ body {
     color: var(--dark-text);
     line-height: 1.6;
     font-size: var(--font-size-md);
-    overflow-anchor: none;
 }
 
 .container {
@@ -198,10 +197,6 @@ button:active {
     white-space: nowrap;
     min-height: 60px;
     max-width: calc(100% - 120px);
-    touch-action: pan-x;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
 }
 
 .equation-row:hover {
@@ -232,13 +227,6 @@ button:active {
     justify-content: center;
     height: 42px;
     position: relative;
-    touch-action: none;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
 }
 
 /* 增加触摸区域 */
@@ -766,27 +754,82 @@ button:active {
     box-shadow: var(--shadow-md);
 }
 
-/* 防止交互区域的文本选择和默认触摸行为 */
-.interactive-area {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+/* 触摸拖拽相关样式 */
+#touch-drag-clone {
+    pointer-events: none;
+    opacity: 0.8;
+    z-index: 9999;
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* 禁止方程元素的文本选择和默认触摸行为 */
-.equation-element, 
-.substituted-term, 
-.equation-row, 
-.interactive-equation, 
-.terms-container {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+.dragging {
+    opacity: 0.7 !important;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.7) !important;
+}
+
+/* 增强触摸区域 */
+.equation-element,
+.substituted-term,
+.scale-arrow,
+.operation-button {
+    touch-action: none; /* 防止浏览器默认触摸行为 */
+}
+
+.operation-button {
+    min-height: 44px; /* 最小触摸区域高度 */
+    min-width: 44px; /* 最小触摸区域宽度 */
+}
+
+.scale-arrow {
+    padding: 10px 15px; /* 增大箭头触摸区域 */
+}
+
+/* 优化移动端响应式布局 */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .equation-row {
+        margin-right: 0;
+        padding: 0.75rem 1rem;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    
+    .scale-control-area {
+        position: relative;
+        right: auto;
+        margin-top: 0.75rem;
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+        height: auto;
+        padding: 1rem;
+    }
+    
+    .equation-row-wrapper {
+        flex-direction: column;
+    }
+    
+    .interactive-equation {
+        padding: 1rem;
+    }
+    
+    /* 确保操作按钮在移动设备上有足够大的点击区域 */
+    .operation-button {
+        padding: 12px;
+        margin: 0 5px;
+    }
+    
+    /* 增加触摸区域间隔，防止误触 */
+    .equation-element {
+        margin: 0 0.2rem;
+    }
+    
+    /* 禁用页面缩放，避免触摸操作时的页面缩放 */
+    input[type="text"] {
+        font-size: 16px; /* 防止iOS自动缩放 */
+    }
 } 
