@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级积分管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {}
+            },
+            plugins: []
+        }
+    </script>
+    <link rel="stylesheet" href="css/quotes.css">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+        }
+        .modal.show {
+            display: flex;
+        }
+        #groupsContainer {
+            min-height: calc(100vh - 200px);
+            grid-template-rows: repeat(4, minmax(200px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
+        }
+        /* 王者段位风格卡片 */
+        .group-card-king {
+            background: linear-gradient(135deg, rgba(255, 155, 0, 0.8), rgba(255, 215, 0, 0.8));
+            border: 2px solid #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        .group-card-master {
+            background: linear-gradient(135deg, rgba(255, 78, 80, 0.8), rgba(252, 145, 58, 0.8));
+            border: 2px solid #FF4E50;
+            box-shadow: 0 0 15px rgba(255, 78, 80, 0.3);
+        }
+        .group-card-diamond {
+            background: linear-gradient(135deg, rgba(80, 201, 195, 0.8), rgba(150, 222, 218, 0.8));
+            border: 2px solid #50C9C3;
+            box-shadow: 0 0 15px rgba(80, 201, 195, 0.3);
+        }
+        .group-card-platinum {
+            background: linear-gradient(135deg, rgba(194, 233, 251, 0.8), rgba(161, 196, 253, 0.8));
+            border: 2px solid #A1C4FD;
+            box-shadow: 0 0 12px rgba(161, 196, 253, 0.3);
+        }
+        .group-card-gold {
+            background: linear-gradient(135deg, rgba(255, 233, 133, 0.8), rgba(250, 116, 43, 0.8));
+            border: 2px solid #FA742B;
+            box-shadow: 0 0 12px rgba(250, 116, 43, 0.3);
+        }
+        .group-card-silver {
+            background: linear-gradient(135deg, rgba(226, 232, 240, 0.8), rgba(203, 213, 225, 0.8));
+            border: 2px solid #CBD5E1;
+            box-shadow: 0 0 10px rgba(203, 213, 225, 0.3);
+        }
+        .group-card-bronze {
+            background: linear-gradient(135deg, rgba(209, 145, 60, 0.8), rgba(255, 209, 148, 0.8));
+            border: 2px solid #D1913C;
+            box-shadow: 0 0 10px rgba(209, 145, 60, 0.3);
+        }
+        .group-card-iron {
+            background: linear-gradient(135deg, rgba(142, 158, 171, 0.8), rgba(238, 242, 243, 0.8));
+            border: 1px solid #8E9EAB;
+            box-shadow: 0 0 8px rgba(142, 158, 171, 0.3);
+        }
+        .student-card {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            padding: 0 0.5rem;
+            border-radius: 0.25rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+        .student-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+        }
+        .student-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .student-score {
+            font-size: 0.75rem;
+            color: #4b5563;
+            min-width: 60px;
+            text-align: right;
+        }
+        .student-controls {
+            display: flex;
+            gap: 0.25rem;
+            margin-left: auto;
+        }
+        .group-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 0.5rem;
+        }
+        .group-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .group-scores {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .exchange-btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+        }
+        .rank-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.125rem 0.5rem;
+            border-radius: 1rem;
+            margin-left: 0.5rem;
+        }
+        .rank-king { background: linear-gradient(45deg, rgba(255, 215, 0, 0.8), rgba(255, 165, 0, 0.8)); color: white; }
+        .rank-master { background: linear-gradient(45deg, rgba(255, 78, 80, 0.8), rgba(252, 145, 58, 0.8)); color: white; }
+        .rank-diamond { background: linear-gradient(45deg, rgba(80, 201, 195, 0.8), rgba(150, 222, 218, 0.8)); color: white; }
+        .rank-platinum { background: linear-gradient(45deg, rgba(194, 233, 251, 0.8), rgba(161, 196, 253, 0.8)); color: white; }
+        .rank-gold { background: linear-gradient(45deg, rgba(255, 233, 133, 0.8), rgba(250, 116, 43, 0.8)); color: white; }
+        .rank-silver { background: linear-gradient(45deg, rgba(226, 232, 240, 0.8), rgba(203, 213, 225, 0.8)); color: #4A5568; }
+        .rank-bronze { background: linear-gradient(45deg, rgba(209, 145, 60, 0.8), rgba(255, 209, 148, 0.8)); color: white; }
+        .rank-iron { background: linear-gradient(45deg, rgba(142, 158, 171, 0.8), rgba(238, 242, 243, 0.8)); color: #4A5568; }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        .modal.show .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .battle-tab-content {
+            min-height: 300px;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .battle-card {
+            transition: all 0.3s ease;
+        }
+        .battle-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto p-4">
+        <div id="groupsContainer" class="grid grid-rows-4 grid-cols-2 gap-4 mb-8">
+        </div>
+
+        <div class="mt-8 pb-4 flex justify-center space-x-4">
+            <button onclick="showGroupForm()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                创建小组
+            </button>
+            <div class="relative inline-block">
+                <button onclick="toggleRandomMenu()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    随机抽取
+                </button>
+                <div id="randomMenu" class="hidden absolute z-50 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                    <div class="py-1">
+                        <button onclick="showRandomDrawModal('group')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            随机抽取小组
+                        </button>
+                        <button onclick="showRandomDrawModal('student')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            随机抽取学生
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="showRecords()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                查看记录
+            </button>
+            <button onclick="showRandomQuote()" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600">
+                随机名言
+            </button>
+            <button onclick="showShopModal()" class="bg-amber-500 text-white px-4 py-2 rounded hover:bg-amber-600">
+                积分兑换
+            </button>
+            <button onclick="handleGroupExchange()" class="bg-blue-400 text-white px-4 py-2 rounded hover:bg-blue-500">
+                商品管理
+            </button>
+            <button onclick="showHallOfFame()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                荣誉殿堂
+            </button>
+            <button onclick="showBattleModal()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                小组对决
+            </button>
+        </div>
+
+        <!-- 创建小组表单 -->
+        <div id="groupFormModal" class="modal">
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full m-auto">
+                <div class="modal-header flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">创建新小组</h2>
+                </div>
+                <form id="groupForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">小组名称</label>
+                        <input type="text" id="groupName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="block text-sm font-medium text-gray-700">学生列表</label>
+                            <button type="button" onclick="addStudent()" class="text-blue-600 hover:text-blue-700">
+                                添加学生
+                            </button>
+                        </div>
+                        <div id="studentsList" class="space-y-2 mt-2">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideGroupForm()" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            取消
+                        </button>
+                        <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                            保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 记录查看器 -->
+        <div id="recordsModal" class="modal">
+            <div class="bg-white rounded-lg p-6 max-w-4xl w-full m-auto max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">操作记录</h2>
+                    <button onclick="hideRecords()" class="text-gray-500 hover:text-gray-700">
+                        关闭
+                    </button>
+                </div>
+                <div class="flex border-b mb-4">
+                    <button onclick="switchTab('score')" id="scoreTab" class="px-4 py-2 border-b-2 border-blue-500 text-blue-600">
+                        积分记录
+                    </button>
+                    <button onclick="switchTab('exchange')" id="exchangeTab" class="px-4 py-2 text-gray-500">
+                        兑换记录
+                    </button>
+                </div>
+                <div id="recordsList" class="space-y-2">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 看板区域 -->
+    <div class="container mx-auto p-4 mb-8">
+        <h2 class="text-2xl font-bold mb-4 text-center">班级积分看板</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- 实时排名 -->
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="text-lg font-semibold mb-3">各组实时排名</h3>
+                <div id="rankingBoard" class="space-y-2"></div>
+            </div>
+            <!-- 历史积分变化曲线 -->
+            <div class="bg-white rounded-lg shadow-md p-4 col-span-2">
+                <h3 class="text-lg font-semibold mb-3">各组历史积分变化曲线</h3>
+                <div class="h-64">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            </div>
+            <!-- 总积分统计 -->
+            <div class="bg-white rounded-lg shadow-md p-4 col-span-3">
+                <h3 class="text-lg font-semibold mb-3">所有小组总积分</h3>
+                <div id="totalScoreBoard" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 每周之星和最佳师徒区域 -->
+    <div class="container mx-auto p-4 mb-8">
+        <h2 class="text-2xl font-bold mb-4 text-center">本周荣誉榜</h2>
+        <div id="weeklyRankingsContainer" class="mb-4">
+            <!-- 每周之星和最佳师徒将通过JS动态加载 -->
+        </div>
+    </div>
+
+    <script src="js/types.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/scoreUtils.js"></script>
+    <link rel="stylesheet" href="css/animation.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/quotes.js"></script>
+    <script src="js/animation.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/weeklyRanking.js"></script>
+    <script src="js/groupBattle.js"></script>
+    <script src="js/app.js"></script>
+    <!-- 抽取动画容器 -->
+    <div id="drawAnimationContainer" class="draw-animation-container">
+        <div id="fireworkContainer" class="firework-container"></div>
+        <div id="drawAnimationItem" class="draw-item"></div>
+    </div>
+
+    <!-- 随机抽取弹窗 -->
+    <div id="randomDrawModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full m-auto">
+            <div class="modal-header flex justify-between items-center mb-4">
+                <h2 id="randomDrawTitle" class="text-xl font-bold">随机抽取</h2>
+                <button onclick="hideRandomDrawModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div id="groupSelectContainer" class="mt-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择组别</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="selectAllGroups" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500" checked>
+                            <span class="ml-2 text-sm text-gray-700">全选</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="selectGroupA" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500" checked>
+                            <span class="ml-2 text-sm text-gray-700">A组</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="selectGroupB" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500" checked>
+                            <span class="ml-2 text-sm text-gray-700">B组</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="selectGroupC" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500" checked>
+                            <span class="ml-2 text-sm text-gray-700">C组</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">抽取数量</label>
+                    <input type="number" id="drawCount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="1" min="1">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button onclick="hideRandomDrawModal()" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button id="showProbabilitiesBtn" onclick="showDrawProbabilities()" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 hidden">
+                        查看概率
+                    </button>
+                    <button onclick="performRandomDraw()" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                        抽取
+                    </button>
+                </div>
+            </div>
+            <div id="drawResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">抽取结果</h3>
+                <div id="drawResultContent" class="text-gray-700 max-h-60 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据管理界面 -->
+    <div id="dataManagementModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-3xl w-full m-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">数据管理</h2>
+                <button onclick="hideDataManagement()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- 本地数据管理 -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-3">本地数据管理</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-medium text-gray-700 mb-2">导出数据</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="exportData()" class="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600">
+                                    导出JSON
+                                </button>
+                                <button onclick="exportToExcel()" class="bg-green-500 text-white px-3 py-1 text-sm rounded hover:bg-green-600">
+                                    导出Excel
+                                </button>
+                                <button onclick="exportToCSV()" class="bg-purple-500 text-white px-3 py-1 text-sm rounded hover:bg-purple-600">
+                                    导出CSV
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-medium text-gray-700 mb-2">导入数据</h4>
+                            <div class="grid grid-cols-1 gap-2">
+                                <label class="block">
+                                    <span class="sr-only">选择JSON文件</span>
+                                    <input type="file" id="jsonFileInput" accept=".json" class="block w-full text-sm text-gray-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-full file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-blue-50 file:text-blue-700
+                                        hover:file:bg-blue-100
+                                    "/>
+                                </label>
+                                <label class="block">
+                                    <span class="sr-only">选择Excel文件</span>
+                                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" class="block w-full text-sm text-gray-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-full file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-green-50 file:text-green-700
+                                        hover:file:bg-green-100
+                                    "/>
+                                </label>
+                                <div class="flex justify-end">
+                                    <button id="importDataBtn" class="bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded hover:bg-gray-300 disabled:opacity-50" disabled>
+                                        导入选择的文件
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 添加数据操作区域 -->
+                        <div>
+                            <h4 class="font-medium text-gray-700 mb-2">数据操作</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="confirmClearScores()" class="bg-yellow-500 text-white px-3 py-1 text-sm rounded hover:bg-yellow-600">
+                                    积分清零
+                                </button>
+                                <button onclick="confirmReset()" class="bg-red-500 text-white px-3 py-1 text-sm rounded hover:bg-red-600">
+                                    重置数据
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 云端数据管理 -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-3">云端数据管理</h3>
+                    
+                    <div class="border border-dashed border-gray-300 rounded-lg p-4">
+                        <div class="text-center text-gray-500 mb-3">
+                            <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h10a4 4 0 004-4v-4a4 4 0 00-4-4H7a4 4 0 00-4 4v4z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H7"/>
+                            </svg>
+                            <p class="mt-2 text-sm">云端存储功能开发中</p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 cursor-not-allowed opacity-50">
+                                敬请期待
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            定期导出数据并保存到安全的位置，以防数据丢失。浏览器存储有容量限制，请避免存储过多图片。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 兑换商城模态框 -->
+    <div id="shopModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-5xl w-full m-auto max-h-[85vh] overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-amber-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path>
+                    </svg>
+                    <h2 class="text-xl font-bold">兑换商城</h2>
+                    <!-- 管理按钮(备用) -->
+                    <div id="adminButtonsContainer"></div>
+                </div>
+                <div class="flex items-center">
+                    <span class="mr-3 bg-amber-100 text-amber-800 py-1 px-3 rounded-full text-sm font-medium flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span id="shopGroupScore">可用积分: 0</span>
+                    </span>
+                    <button onclick="hideShopModal()" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-hidden flex">
+                <!-- 商品分类 -->
+                <div class="w-48 border-r pr-4 overflow-y-auto shop-categories">
+                    <h3 class="font-semibold text-gray-700 mb-2">商品分类</h3>
+                    <ul class="space-y-1">
+                        <li>
+                            <button onclick="filterShopItems('all')" class="w-full text-left py-2 px-3 rounded-md bg-blue-50 text-blue-700 font-medium">全部商品</button>
+                        </li>
+                        <li>
+                            <button onclick="filterShopItems('limited')" class="w-full text-left py-2 px-3 rounded-md hover:bg-gray-100 transition-colors">限时商品</button>
+                        </li>
+                        <li>
+                            <button onclick="filterShopItems('discount')" class="w-full text-left py-2 px-3 rounded-md hover:bg-gray-100 transition-colors">特惠商品</button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- 商品列表 -->
+                <div class="flex-1 pl-4 overflow-hidden flex flex-col">
+                    <div class="mb-3 flex justify-between items-center">
+                        <div class="relative">
+                            <input type="text" id="shopSearch" placeholder="搜索商品..." class="pl-9 pr-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 w-64">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-2 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex items-center">
+                            <label class="text-sm text-gray-600 mr-2">排序:</label>
+                            <select id="shopSort" class="border rounded-md px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="priceAsc">价格从低到高</option>
+                                <option value="priceDesc">价格从高到低</option>
+                                <option value="newest">最新上架</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 商品网格 -->
+                    <div class="flex-1 overflow-y-auto pr-2">
+                        <div id="shopItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            <!-- 商品会通过JS动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 商品详情模态框 -->
+    <div id="itemDetailModal" class="modal">
+        <div class="bg-white rounded-lg max-w-2xl w-full mx-auto overflow-hidden">
+            <div id="itemDetailContent" class="p-6">
+                <!-- 商品详情会通过JS动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 购买确认模态框 -->
+    <div id="purchaseConfirmModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full m-auto">
+            <div class="text-center mb-4">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900" id="purchaseItemName">确认购买</h3>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-500" id="purchaseItemDesc">
+                        您确定要使用 <span id="purchaseItemPrice" class="font-bold text-red-600">100</span> 积分购买此商品吗？
+                    </p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+                <button type="button" id="cancelPurchaseBtn" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    取消
+                </button>
+                <button type="button" id="confirmPurchaseBtn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                    确认购买
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 小组对决模态框 -->
+    <div id="battleModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl max-w-4xl w-full mx-auto transition-transform transform scale-95 opacity-0 duration-200">
+            <div class="flex justify-between items-center p-5 border-b">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                    </svg>
+                    <h2 class="text-xl font-bold bg-gradient-to-r from-red-600 to-amber-500 text-transparent bg-clip-text">小组对决</h2>
+                </div>
+                <button onclick="hideBattleModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none transition-transform transform hover:rotate-90 duration-200">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5">
+                <!-- 标签页 -->
+                <div class="border-b border-gray-200 mb-4">
+                    <div class="flex space-x-8">
+                        <button id="currentBattleTab" onclick="switchBattleTab('current')" class="py-3 border-b-2 border-blue-500 text-blue-600 font-medium text-sm transition-all duration-200 hover:text-blue-800">当前对决</button>
+                        <button id="historyBattleTab" onclick="switchBattleTab('history')" class="py-3 border-b-2 border-transparent text-gray-500 font-medium text-sm transition-all duration-200 hover:text-gray-700">历史对决</button>
+                    </div>
+                </div>
+                
+                <!-- 当前对决内容 -->
+                <div id="currentBattleContent" class="battle-tab-content">
+                    <div id="currentBattleList">
+                        <!-- 这里由JavaScript填充当前对决列表 -->
+                    </div>
+                </div>
+                
+                <!-- 历史对决内容 -->
+                <div id="historyBattleContent" class="battle-tab-content" style="display: none;">
+                    <div id="historyBattleList">
+                        <!-- 这里由JavaScript填充历史对决列表 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建对决表单模态框 -->
+    <div id="battleFormModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl max-w-lg w-full mx-auto">
+            <div class="flex justify-between items-center p-5 border-b">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <h2 class="text-xl font-bold">创建小组对决</h2>
+                </div>
+                <button onclick="hideBattleForm()" class="text-gray-400 hover:text-gray-600 focus:outline-none transition-transform transform hover:rotate-90 duration-200">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5">
+                <form id="battleForm" class="space-y-4">
+                    <div>
+                        <label for="battleTitle" class="block text-sm font-medium text-gray-700">对决主题</label>
+                        <input type="text" id="battleTitle" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200 hover:border-blue-300" placeholder="例如：第一周知识问答" required>
+                    </div>
+                    <div>
+                        <label for="battleTicket" class="block text-sm font-medium text-gray-700">门票积分</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <input type="number" min="1" step="0.1" id="battleTicket" class="block w-full pr-12 border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200 hover:border-blue-300" placeholder="每个小组需支付的积分" required>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">积分</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="battleIncentive" class="block text-sm font-medium text-gray-700">额外奖励（可选）</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <input type="number" min="0" step="0.1" id="battleIncentive" class="block w-full pr-12 border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200 hover:border-blue-300" placeholder="对决额外奖励积分">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">积分</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择参与小组</label>
+                        <div id="battleGroupSelect" class="max-h-60 overflow-y-auto border border-gray-200 rounded-md p-2">
+                            <!-- 这里由JavaScript填充小组列表 -->
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-3 border-t">
+                        <button type="button" onclick="hideBattleForm()" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition-colors duration-200">
+                            取消
+                        </button>
+                        <button type="button" onclick="createBattle()" class="py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none transition-all duration-200 transform hover:scale-105">
+                            创建对决
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加入对决表单模态框 -->
+    <div id="joinBattleFormModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl max-w-lg w-full mx-auto">
+            <div class="flex justify-between items-center p-5 border-b">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"></path>
+                    </svg>
+                    <h2 id="joinBattleTitle" class="text-xl font-bold">加入对决</h2>
+                </div>
+                <button onclick="hideJoinBattleForm()" class="text-gray-400 hover:text-gray-600 focus:outline-none transition-transform transform hover:rotate-90 duration-200">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5">
+                <form id="joinBattleForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择要加入的小组</label>
+                        <div id="joinBattleGroupSelect" class="max-h-60 overflow-y-auto border border-gray-200 rounded-md p-2">
+                            <!-- 这里由JavaScript填充小组列表 -->
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-3 border-t">
+                        <button type="button" onclick="hideJoinBattleForm()" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition-colors duration-200">
+                            取消
+                        </button>
+                        <button type="button" onclick="joinBattle()" class="py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none transition-all duration-200 transform hover:scale-105">
+                            确认加入
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结算对决表单模态框 -->
+    <div id="settleBattleFormModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl max-w-lg w-full mx-auto">
+            <div class="flex justify-between items-center p-5 border-b">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <h2 id="settleBattleTitle" class="text-xl font-bold">结算对决</h2>
+                </div>
+                <button onclick="hideSettleBattleForm()" class="text-gray-400 hover:text-gray-600 focus:outline-none transition-transform transform hover:rotate-90 duration-200">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5">
+                <form id="settleBattleForm" class="space-y-4">
+                    <div id="settleBattleInfo" class="p-3 bg-gray-50 rounded-lg mb-3 border border-gray-200">
+                        <!-- 这里由JavaScript填充对决信息 -->
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择获胜小组</label>
+                        <div id="settleBattleGroupSelect" class="max-h-60 overflow-y-auto border border-gray-200 rounded-md p-2">
+                            <!-- 这里由JavaScript填充小组列表 -->
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-3 border-t">
+                        <button type="button" onclick="hideSettleBattleForm()" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition-colors duration-200">
+                            取消
+                        </button>
+                        <button type="button" onclick="settleBattle()" class="py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:from-green-600 hover:to-green-700 focus:outline-none transition-all duration-200 transform hover:scale-105">
+                            确认结算
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 确保UI会完全刷新，显示小组对决的数据
+        document.addEventListener('DOMContentLoaded', function() {
+            // 延迟执行，确保所有组件都已加载
+            setTimeout(function() {
+                console.log('强制刷新UI以确保小组对决数据正确显示');
+                // 如果updateAppUI函数存在，调用它刷新所有UI组件
+                if (typeof window.updateAppUI === 'function') {
+                    window.updateAppUI();
+                }
+                
+                // 确保渲染小组对决相关的UI
+                if (typeof renderCurrentBattles === 'function') {
+                    renderCurrentBattles();
+                }
+                if (typeof renderHistoryBattles === 'function') {
+                    renderHistoryBattles();
+                }
+                
+                // 监听小组对决状态变化
+                document.addEventListener('appStateUpdated', function(e) {
+                    // 始终更新整个UI
+                    if (typeof window.updateAppUI === 'function') {
+                        window.updateAppUI();
+                    }
+                });
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
+
