@@ -1,21 +1,26 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // 禁止页面默认的滚动行为
+    // 禁用交互区域的默认触摸行为以防止滚动
+    const interactiveArea = document.querySelector('.interactive-area');
+    if (interactiveArea) {
+        // 阻止交互区域的默认触摸行为
+        interactiveArea.addEventListener('touchmove', function(e) {
+            // 只阻止默认的滚动行为
+            e.preventDefault();
+        }, { passive: false });
+        
+        // 阻止长按选择文本的行为
+        interactiveArea.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    }
+    
+    // 禁用拖动元素的默认触摸行为
     document.addEventListener('touchmove', function(e) {
-        if(e.target.closest('.equation-element, .substituted-term')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-    
-    // 禁止长按选择文本
-    document.addEventListener('contextmenu', function(e) {
-        if(e.target.closest('.equation-element, .substituted-term, .equation-row, .interactive-area')) {
-            e.preventDefault();
-        }
-    });
-    
-    // 禁止触摸设备上的长按选择文本
-    document.addEventListener('touchstart', function(e) {
-        if(e.target.closest('.equation-element, .substituted-term, .equation-row, .interactive-area')) {
+        const target = e.target;
+        if (target.classList.contains('equation-element') || 
+            target.classList.contains('substituted-term') ||
+            target.closest('.equation-row')) {
             e.preventDefault();
         }
     }, { passive: false });
@@ -420,313 +425,6 @@ document.addEventListener('DOMContentLoaded', function() {
         element.draggable = true;
         element.addEventListener('dragstart', handleDragStart);
         element.addEventListener('dragend', handleDragEnd);
-        
-        // 添加触摸设备支持
-        element.addEventListener('touchstart', function(e) {
-            e.preventDefault(); // 防止默认行为
-            this.classList.add('dragging');
-            selectedElement = this;
-            
-            // 添加视觉反馈
-            this.style.opacity = '0.7';
-            this.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.7)';
-            
-            // 记录触摸起始位置
-            dragStartPosition.x = e.touches[0].clientX;
-            dragStartPosition.y = e.touches[0].clientY;
-        }, { passive: false });
-        
-        element.addEventListener('touchmove', function(e) {
-            e.preventDefault(); // 防止默认的滚动行为
-            if (!selectedElement) return;
-            
-            // 模拟拖拽悬停效果
-            const touch = e.touches[0];
-            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-            
-            // 这里可以调用handleDragOver的逻辑，或者复制其中的部分逻辑
-            if (targetElement) {
-                // 清除所有悬停效果
-                document.querySelectorAll('.drag-hover-substitute, .drag-hover-move, .drag-hover-combine').forEach(el => {
-                    el.classList.remove('drag-hover-substitute', 'drag-hover-move', 'drag-hover-combine');
-                });
-                
-                // 模拟dragover事件
-                const simulatedEvent = {
-                    preventDefault: function() {},
-                    dataTransfer: { dropEffect: 'move' },
-                    clientX: touch.clientX,
-                    clientY: touch.clientY,
-                    target: targetElement
-                };
-                
-                handleDragOver(simulatedEvent);
-            }
-        }, { passive: false });
-        
-        element.addEventListener('touchend', function(e) {
-            e.preventDefault(); // 防止默认行为
-            if (!selectedElement) return;
-            
-            const touch = e.changedTouches[0];
-            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-            
-            // 模拟drop事件
-            if (targetElement) {
-                const simulatedEvent = {
-                    preventDefault: function() {},
-                    dataTransfer: {},
-                    clientX: touch.clientX,
-                    clientY: touch.clientY,
-                    target: targetElement
-                };
-                
-                handleDrop(simulatedEvent);
-            }
-            
-            // 清除状态
-            this.classList.remove('dragging');
-            this.style.opacity = '';
-            this.style.boxShadow = '';
-            selectedElement = null;
-            
-            // 清除所有拖拽悬停效果
-            document.querySelectorAll('.drag-hover-substitute, .drag-hover-move, .drag-hover-combine').forEach(el => {
-                el.classList.remove('drag-hover-substitute', 'drag-hover-move', 'drag-hover-combine');
-            });
-        }, { passive: false });
-        
-        return element;
-    }
-    
-    // 创建替换项的容器元素
-    function createSubstitutedTermElement(term) {
-        const element = document.createElement('div');
-        element.className = 'substituted-term';
-        element.style.height = '40px';
-        element.style.display = 'inline-flex';
-        element.style.alignItems = 'center';
-        element.style.justifyContent = 'center';
-        element.draggable = true;
-        
-        // 设置数据属性，确保拖拽功能正常工作
-        element.dataset.variable = term.originalVariable || term.variable;
-        element.dataset.coefficient = term.originalCoeff || term.coefficient;
-        element.dataset.isSubstituted = 'true';
-        
-        // 创建内容 - 使用原始表达式数据
-        const expressionTerms = term.expressionTerms || term.substitutionTerms || [];
-        
-        // 创建系数和括号结构
-        const coeffPart = document.createElement('span');
-        coeffPart.className = 'original-coefficient';
-        coeffPart.style.display = 'inline-flex';
-        coeffPart.style.alignItems = 'center';
-        coeffPart.style.height = '100%';
-        
-        const absCoeff = Math.abs(term.originalCoeff || term.coefficient);
-        if (absCoeff === 1) {
-            // 系数为1或-1时的处理
-            coeffPart.textContent = (term.originalCoeff || term.coefficient) < 0 ? '-' : '';
-        } else {
-            // 其他系数
-            coeffPart.innerHTML = (term.originalCoeff || term.coefficient) < 0 ? '-' + decimalToFraction(absCoeff) : decimalToFraction(absCoeff);
-        }
-        
-        // 创建左括号
-        const leftBracket = document.createElement('span');
-        leftBracket.className = 'bracket';
-        leftBracket.textContent = '(';
-        leftBracket.style.display = 'inline-flex';
-        leftBracket.style.alignItems = 'center';
-        leftBracket.style.height = '100%';
-        
-        // 创建表达式部分
-        const exprPart = document.createElement('span');
-        exprPart.className = 'substitution-expr';
-        exprPart.style.display = 'inline-flex';
-        exprPart.style.alignItems = 'center';
-        exprPart.style.height = '100%';
-        
-        // 构建表达式HTML - 保留原始符号
-        let expressionHtml = '';
-        
-        expressionTerms.forEach((exprTerm, index) => {
-            // 处理第一项的符号
-            if (index === 0) {
-                if (exprTerm.coefficient < 0) {
-                    expressionHtml += '-';
-                }
-            } else {
-                // 处理后续项的符号
-                expressionHtml += exprTerm.coefficient < 0 ? ' - ' : ' + ';
-            }
-            
-            // 显示系数（绝对值）
-            let coeff = Math.abs(exprTerm.coefficient);
-            
-            // 系数为1且有变量时，不显示系数
-            if (coeff !== 1 || !exprTerm.variable) {
-                // 使用分数表示系数
-                let coeffStr = decimalToFraction(coeff);
-                expressionHtml += coeffStr;
-            }
-            
-            // 添加变量
-            if (exprTerm.variable) {
-                expressionHtml += exprTerm.variable;
-            }
-        });
-        
-        exprPart.innerHTML = expressionHtml;
-        
-        // 创建右括号
-        const rightBracket = document.createElement('span');
-        rightBracket.className = 'bracket';
-        rightBracket.textContent = ')';
-        rightBracket.style.display = 'inline-flex';
-        rightBracket.style.alignItems = 'center';
-        rightBracket.style.height = '100%';
-        
-        // 组装完整的替换表达式
-        element.appendChild(coeffPart);
-        element.appendChild(leftBracket);
-        element.appendChild(exprPart);
-        element.appendChild(rightBracket);
-        
-        // 存储原始数据，用于展开计算
-        element.dataset.originalCoeff = term.originalCoeff || term.coefficient;
-        element.dataset.expressionTerms = JSON.stringify(expressionTerms);
-        element.dataset.clickState = "0"; // 0 = 初始状态, 1 = 展开系数, 2 = 去括号
-        
-        // 添加点击事件 - 通过点击循环不同状态
-        element.addEventListener('click', function() {
-            const clickState = parseInt(element.dataset.clickState);
-            
-            switch(clickState) {
-                case 0: // 初始状态 -> 展开系数但保留括号
-                    expandCoefficient(element);
-                    break;
-                    
-                case 1: // 展开系数 -> 去括号
-                    removeParentheses(element);
-                    break;
-            }
-        });
-        
-        // 添加拖拽功能
-        element.addEventListener('dragstart', handleDragStart);
-        element.addEventListener('dragend', handleDragEnd);
-        
-        // 添加触摸设备支持
-        element.addEventListener('touchstart', function(e) {
-            // 记录起始时间和位置，用于区分点击和拖动
-            this.touchStartTime = new Date().getTime();
-            this.touchStartX = e.touches[0].clientX;
-            this.touchStartY = e.touches[0].clientY;
-            
-            e.preventDefault(); // 防止默认行为
-            this.classList.add('dragging');
-            selectedElement = this;
-            
-            // 添加视觉反馈
-            this.style.opacity = '0.7';
-            this.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.7)';
-            
-            // 记录触摸起始位置
-            dragStartPosition.x = e.touches[0].clientX;
-            dragStartPosition.y = e.touches[0].clientY;
-        }, { passive: false });
-        
-        element.addEventListener('touchmove', function(e) {
-            e.preventDefault(); // 防止默认的滚动行为
-            if (!selectedElement) return;
-            
-            // 记录已移动状态
-            this.hasMoved = true;
-            
-            // 模拟拖拽悬停效果
-            const touch = e.touches[0];
-            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-            
-            // 这里可以调用handleDragOver的逻辑，或者复制其中的部分逻辑
-            if (targetElement) {
-                // 清除所有悬停效果
-                document.querySelectorAll('.drag-hover-substitute, .drag-hover-move, .drag-hover-combine').forEach(el => {
-                    el.classList.remove('drag-hover-substitute', 'drag-hover-move', 'drag-hover-combine');
-                });
-                
-                // 模拟dragover事件
-                const simulatedEvent = {
-                    preventDefault: function() {},
-                    dataTransfer: { dropEffect: 'move' },
-                    clientX: touch.clientX,
-                    clientY: touch.clientY,
-                    target: targetElement
-                };
-                
-                handleDragOver(simulatedEvent);
-            }
-        }, { passive: false });
-        
-        element.addEventListener('touchend', function(e) {
-            e.preventDefault(); // 防止默认行为
-            if (!selectedElement) return;
-            
-            const touchEndTime = new Date().getTime();
-            const touchDuration = touchEndTime - (this.touchStartTime || 0);
-            const touch = e.changedTouches[0];
-            
-            // 计算移动距离
-            const moveDistance = Math.sqrt(
-                Math.pow(touch.clientX - (this.touchStartX || 0), 2) + 
-                Math.pow(touch.clientY - (this.touchStartY || 0), 2)
-            );
-            
-            // 如果触摸时间短且移动距离小，视为点击
-            if (touchDuration < 300 && moveDistance < 10 && !this.hasMoved) {
-                // 模拟点击事件
-                const clickState = parseInt(this.dataset.clickState);
-                
-                switch(clickState) {
-                    case 0: // 初始状态 -> 展开系数但保留括号
-                        expandCoefficient(this);
-                        break;
-                        
-                    case 1: // 展开系数 -> 去括号
-                        removeParentheses(this);
-                        break;
-                }
-            } else {
-                // 否则按拖拽处理
-                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                
-                // 模拟drop事件
-                if (targetElement) {
-                    const simulatedEvent = {
-                        preventDefault: function() {},
-                        dataTransfer: {},
-                        clientX: touch.clientX,
-                        clientY: touch.clientY,
-                        target: targetElement
-                    };
-                    
-                    handleDrop(simulatedEvent);
-                }
-            }
-            
-            // 清除状态
-            this.hasMoved = false;
-            this.classList.remove('dragging');
-            this.style.opacity = '';
-            this.style.boxShadow = '';
-            selectedElement = null;
-            
-            // 清除所有拖拽悬停效果
-            document.querySelectorAll('.drag-hover-substitute, .drag-hover-move, .drag-hover-combine').forEach(el => {
-                el.classList.remove('drag-hover-substitute', 'drag-hover-move', 'drag-hover-combine');
-            });
-        }, { passive: false });
         
         return element;
     }
@@ -2550,6 +2248,124 @@ document.addEventListener('DOMContentLoaded', function() {
     const randomEqs = generateRandomEquation();
     equation1Input.value = randomEqs.eq1;
     equation2Input.value = randomEqs.eq2;
+    
+    // 处理被替换的项 - 显示为"系数(表达式)"的形式，并支持点击展开
+    function createSubstitutedTermElement(term) {
+        const element = document.createElement('div');
+        element.className = 'substituted-term';
+        element.style.height = '40px';
+        element.style.display = 'inline-flex';
+        element.style.alignItems = 'center';
+        element.style.justifyContent = 'center';
+        
+        // 设置数据属性，与正常项保持一致，确保拖拽功能正常工作
+        element.dataset.variable = term.originalVariable;
+        element.dataset.coefficient = term.originalCoeff;
+        
+        // 创建系数和括号结构
+        const coeffPart = document.createElement('span');
+        coeffPart.className = 'original-coefficient';
+        coeffPart.style.display = 'inline-flex';
+        coeffPart.style.alignItems = 'center';
+        coeffPart.style.height = '100%';
+        
+        const absCoeff = Math.abs(term.originalCoeff);
+        if (absCoeff === 1) {
+            // 系数为1或-1时的处理
+            coeffPart.textContent = term.originalCoeff < 0 ? '-' : '';
+        } else {
+            // 其他系数
+            coeffPart.innerHTML = term.originalCoeff < 0 ? '-' + decimalToFraction(absCoeff) : decimalToFraction(absCoeff);
+        }
+        
+        // 创建左括号
+        const leftBracket = document.createElement('span');
+        leftBracket.className = 'bracket';
+        leftBracket.textContent = '(';
+        leftBracket.style.display = 'inline-flex';
+        leftBracket.style.alignItems = 'center';
+        leftBracket.style.height = '100%';
+        
+        // 创建表达式部分
+        const exprPart = document.createElement('span');
+        exprPart.className = 'substitution-expr';
+        exprPart.style.display = 'inline-flex';
+        exprPart.style.alignItems = 'center';
+        exprPart.style.height = '100%';
+        
+        // 构建表达式HTML - 保留原始符号
+        let expressionHtml = '';
+        
+        term.expressionTerms.forEach((exprTerm, index) => {
+            // 处理第一项的符号
+            if (index === 0) {
+                if (exprTerm.coefficient < 0) {
+                    expressionHtml += '-';
+                }
+            } else {
+                // 处理后续项的符号
+                expressionHtml += exprTerm.coefficient < 0 ? ' - ' : ' + ';
+            }
+            
+            // 显示系数（绝对值）
+            let coeff = Math.abs(exprTerm.coefficient);
+            
+            // 系数为1且有变量时，不显示系数
+            if (coeff !== 1 || !exprTerm.variable) {
+                // 使用分数表示系数
+                let coeffStr = decimalToFraction(coeff);
+                expressionHtml += coeffStr;
+            }
+            
+            // 添加变量
+            if (exprTerm.variable) {
+                expressionHtml += exprTerm.variable;
+            }
+        });
+        
+        exprPart.innerHTML = expressionHtml;
+        
+        // 创建右括号
+        const rightBracket = document.createElement('span');
+        rightBracket.className = 'bracket';
+        rightBracket.textContent = ')';
+        rightBracket.style.display = 'inline-flex';
+        rightBracket.style.alignItems = 'center';
+        rightBracket.style.height = '100%';
+        
+        // 组装完整的替换表达式
+        element.appendChild(coeffPart);
+        element.appendChild(leftBracket);
+        element.appendChild(exprPart);
+        element.appendChild(rightBracket);
+        
+        // 存储原始数据，用于展开计算
+        element.dataset.originalCoeff = term.originalCoeff;
+        element.dataset.expressionTerms = JSON.stringify(term.expressionTerms);
+        element.dataset.clickState = "0"; // 0 = 初始状态, 1 = 展开系数, 2 = 去括号
+        
+        // 添加点击事件 - 通过点击循环不同状态
+        element.addEventListener('click', function() {
+            const clickState = parseInt(element.dataset.clickState);
+            
+            switch(clickState) {
+                case 0: // 初始状态 -> 展开系数但保留括号
+                    expandCoefficient(element);
+                    break;
+                    
+                case 1: // 展开系数 -> 去括号
+                    removeParentheses(element);
+                    break;
+            }
+        });
+        
+        // 添加拖拽功能
+        element.draggable = true;
+        element.addEventListener('dragstart', handleDragStart);
+        element.addEventListener('dragend', handleDragEnd);
+        
+        return element;
+    }
     
     // 展开系数但保留括号的函数
     function expandCoefficient(element) {
