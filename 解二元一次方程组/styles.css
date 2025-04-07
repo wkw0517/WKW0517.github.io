@@ -1,0 +1,755 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', sans-serif;
+}
+
+:root {
+    --primary-color: #3a86ff;
+    --secondary-color: #ff006e;
+    --success-color: #38b000;
+    --warning-color: #ffbe0b;
+    --x-term-color: #ff7043;
+    --y-term-color: #42a5f5;
+    --constant-color: #66bb6a;
+    --light-bg: #f8fafc;
+    --dark-text: #1e293b;
+    --light-text: #64748b;
+    --border-radius: 10px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+    --font-size-xs: 14px;
+    --font-size-sm: 16px;
+    --font-size-md: 18px;
+    --font-size-lg: 22px;
+    --font-size-xl: 28px;
+    --font-size-2xl: 36px;
+}
+
+body {
+    background-color: #f5f5f5;
+    color: var(--dark-text);
+    line-height: 1.6;
+    font-size: var(--font-size-md);
+}
+
+.container {
+    max-width: 1080px;
+    margin: 2rem auto;
+    padding: 0 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--primary-color);
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+h2 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+.equation-input, 
+.interactive-area {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: box-shadow 0.3s ease;
+}
+
+.equation-input:hover, 
+.interactive-area:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.input-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+input[type="text"] {
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-md);
+    transition: all 0.2s ease;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+}
+
+input[type="text"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.2);
+    outline: none;
+}
+
+button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: var(--font-size-md);
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+}
+
+button:hover {
+    background-color: #2970df;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+#solve-btn {
+    /* 移除影响对齐的样式 */
+    /* margin-top: 0.5rem; */
+    /* align-self: flex-start; */
+}
+
+.interaction-tip {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--light-bg);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 4px;
+    font-size: var(--font-size-sm);
+    color: var(--light-text);
+    line-height: 1.5;
+}
+
+.drag-drop-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.equation-blocks {
+    min-height: 200px;
+    border: 2px dashed rgba(58, 134, 255, 0.3);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    background-color: rgba(58, 134, 255, 0.03);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    width: 100%;
+}
+
+.equation-blocks:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(58, 134, 255, 0.05);
+}
+
+/* 方程和系数调整的容器 */
+.equation-with-controls {
+    width: 100%;
+    margin-bottom: 1.5rem;
+}
+
+/* 方程行显示容器 */
+.equation-row-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+/* 修改方程行样式 */
+.equation-row {
+    display: inline-flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--light-bg);
+    border-radius: var(--border-radius);
+    margin-right: 100px; /* 为系数控制区域留出空间 */
+    transition: background-color 0.2s;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    min-height: 60px;
+    max-width: calc(100% - 120px);
+}
+
+.equation-row:hover {
+    background-color: #f0f5ff;
+}
+
+/* 方程元素容器 */
+.terms-container {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+/* 方程元素样式 */
+.equation-element {
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    font-size: calc(var(--font-size-lg) - 2px);
+    margin: 0 0.1rem;
+    min-width: 38px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    cursor: grab;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    position: relative;
+}
+
+/* 增加触摸区域 */
+.equation-element::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    z-index: -1;
+}
+
+.equation-element:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.equation-element:active {
+    cursor: grabbing;
+}
+
+/* 操作符样式 - 让+/-符号更加突出 */
+.operator {
+    font-size: calc(var(--font-size-xl) - 2px);
+    margin: 0 0.1rem;
+    font-weight: 800;
+    background-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    min-width: 30px;
+    width: 30px;
+    border-radius: 6px;
+    padding: 0 4px;
+    box-shadow: none;
+    text-shadow: 0 0 1px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+/* 专门定义减号样式，使其与加号一致 */
+.operator.minus-sign {
+    letter-spacing: 0;
+    padding: 0 4px;
+    min-width: 30px;
+    width: 30px;
+    text-align: center;
+}
+
+/* 确保减号符号居中且有正确的长度 */
+.operator.minus-sign::before {
+    content: "—";
+    display: inline-block;
+    transform: scaleX(0.7);
+    text-align: center;
+    width: 100%;
+}
+
+/* 当操作符用于减号时隐藏原始内容（短横线），用我们的自定义长横线替代 */
+.operator.minus-sign span {
+    display: none;
+}
+
+/* 等号样式 */
+.equal-sign {
+    font-size: calc(var(--font-size-2xl) - 2px);
+    margin: 0 0.3rem;
+    color: var(--secondary-color);
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    min-width: 30px;
+    background-color: rgba(255, 0, 110, 0.08);
+    border-radius: 8px;
+    padding: 0 6px;
+}
+
+/* 系数控制区域样式优化 */
+.scale-control-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 0.75rem 1rem;
+    margin-left: 1rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(58, 134, 255, 0.2);
+    height: 60px;
+    position: absolute;
+    right: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+/* 系数控制区域悬停样式 */
+.scale-control-area:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+
+/* 系数值选择器 */
+.scale-value-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 1rem;
+    position: relative;
+}
+
+.current-scale-value {
+    width: 45px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background-color: var(--light-bg);
+    border: 1px solid rgba(0,0,0,0.08);
+    font-weight: 600;
+    font-size: var(--font-size-md);
+    margin: 2px 0;
+    color: var(--dark-text);
+    transition: all 0.2s;
+    text-align: center;
+    padding: 0;
+}
+
+.current-scale-value:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2);
+}
+
+.scale-arrow {
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    transition: transform 0.2s, color 0.2s;
+    user-select: none;
+    line-height: 1;
+    padding: 8px 15px; /* 增大点击区域 */
+    margin: -6px -10px; /* 负边距确保不占用额外空间 */
+    position: relative;
+}
+
+.scale-arrow:hover {
+    transform: scale(1.2);
+    color: #2970df;
+}
+
+/* 代入项样式 */
+.substituted-term {
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    margin: 0 0.25rem;
+    background-color: #fff3f0;
+    border: 1px solid #ffcdc7;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: var(--font-size-md);
+    box-shadow: var(--shadow-sm);
+    height: 40px;
+    min-height: 40px;
+    vertical-align: middle;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .equation-row {
+        margin-right: 0;
+        padding: 0.75rem 1rem;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    
+    .scale-control-area {
+        position: relative;
+        right: auto;
+        margin-top: 0.75rem;
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .equation-row-wrapper {
+        flex-direction: column;
+    }
+    
+    .interactive-equation {
+        padding: 1rem;
+    }
+}
+
+/* 方程容器样式 */
+.interactive-equation {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: var(--border-radius);
+    background-color: white;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.interactive-equation:hover {
+    box-shadow: var(--shadow-md);
+    border-color: rgba(58, 134, 255, 0.3);
+}
+
+/* 方程标签样式 */
+.equation-label {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+    font-size: var(--font-size-md);
+    display: block;
+}
+
+/* 分数显示样式 */
+.fraction {
+    display: inline-block;
+    vertical-align: middle;
+    text-align: center;
+    font-size: var(--font-size-md);
+    line-height: 1.2;
+    margin: 0 2px;
+    transform: scale(1.1); /* 稍微放大分数 */
+}
+
+.fraction .numerator {
+    border-bottom: 1.5px solid currentColor;
+    padding: 0 3px;
+}
+
+.fraction .denominator {
+    padding: 0 3px;
+}
+
+/* 代入表达式样式 */
+.substitution-expression {
+    margin: 0.75rem 0;
+    padding: 0.75rem 1rem;
+    background-color: #e8f4fc;
+    border-left: 4px solid var(--primary-color);
+    border-radius: 6px;
+    font-size: var(--font-size-md);
+    line-height: 1.5;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.substitution-expression .expr-title {
+    font-weight: 600;
+    margin-right: 0.5rem;
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+}
+
+.substitution-expression .expr-value {
+    color: var(--dark-text);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+}
+
+.substitution-expression .expr-info {
+    font-style: italic;
+    color: var(--light-text);
+    margin-left: 0.5rem;
+    font-size: var(--font-size-sm);
+    display: inline-flex;
+    align-items: center;
+}
+
+.substitution-expression .fraction {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 2px;
+    vertical-align: middle;
+}
+
+.substitution-expression .variable {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.variable.x-color {
+    color: var(--x-term-color);
+    font-weight: 600;
+}
+
+.variable.y-color {
+    color: var(--y-term-color);
+    font-weight: 600;
+}
+
+.substitution-expr {
+    color: var(--secondary-color);
+    font-weight: 500;
+    font-size: var(--font-size-md);
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.bracket {
+    font-size: var(--font-size-lg);
+    color: var(--secondary-color);
+    font-weight: bold;
+    margin: 0 2px;
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    vertical-align: middle;
+}
+
+.original-coefficient {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    height: 100%;
+}
+
+/* 分数在代入表达式中的样式 */
+.substituted-term .fraction {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: calc(var(--font-size-md) - 2px);
+    line-height: 1;
+    margin: 0 2px;
+    vertical-align: middle;
+}
+
+.substituted-term .fraction .numerator {
+    border-bottom: 1px solid currentColor;
+    padding: 0 3px;
+    min-width: 1em;
+    text-align: center;
+}
+
+.substituted-term .fraction .denominator {
+    padding: 0 3px;
+    min-width: 1em;
+    text-align: center;
+}
+
+/* 调整展开后的表达式样式 */
+.expanded-expr {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+/* 确保方程内所有元素垂直居中 */
+.equation-row > * {
+    vertical-align: middle;
+}
+
+.x-term {
+    background-color: var(--x-term-color);
+    color: white;
+}
+
+.y-term {
+    background-color: var(--y-term-color);
+    color: white;
+}
+
+.constant {
+    background-color: var(--constant-color);
+    color: white;
+}
+
+.operation-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.operation-button {
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: var(--font-size-md);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+    padding: 0 10px; /* 确保文本按钮有足够空间 */
+}
+
+.operation-button:hover {
+    background-color: #2970df;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.operation-button:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
+/* 简化的替换项样式 */
+.substituted-term:hover {
+    background-color: #fff0eb;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* 设置统一高度的方程项 */
+.equation-element,
+.operator,
+.equal-sign,
+.substituted-term,
+.substitution-expr,
+.bracket,
+.original-coefficient,
+.expanded-expr,
+.unbracket-container > * {
+    height: 42px !important;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+/* 分数在方程中的显示统一 */
+.fraction {
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+/* 统一方程行高度 */
+.equation-row {
+    min-height: 60px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* 方程标签样式 */
+.equation-label {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+    font-size: var(--font-size-md);
+    display: block;
+}
+
+/* 拖拽操作视觉反馈 */
+@keyframes highlight-substitute {
+    0% { box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(58, 134, 255, 0.6); background-color: rgba(58, 134, 255, 0.3); }
+    100% { box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2); }
+}
+
+@keyframes highlight-move {
+    0% { background-color: rgba(255, 193, 7, 0.1); }
+    50% { background-color: rgba(255, 193, 7, 0.3); }
+    100% { background-color: rgba(255, 193, 7, 0.1); }
+}
+
+@keyframes highlight-combine {
+    0% { transform: scale(1); box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2); }
+    50% { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(76, 175, 80, 0.6); background-color: rgba(76, 175, 80, 0.4); }
+    100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2); }
+}
+
+.highlight-substitute {
+    animation: highlight-substitute 0.8s ease-in-out;
+    z-index: 10;
+}
+
+.highlight-move {
+    animation: highlight-move 0.8s ease-in-out;
+}
+
+.highlight-combine {
+    animation: highlight-combine 0.8s ease-in-out;
+    z-index: 10;
+}
+
+/* 拖拽悬停效果 */
+.drag-hover-substitute {
+    outline: 2px dashed var(--primary-color);
+    background-color: rgba(58, 134, 255, 0.1);
+}
+
+.drag-hover-move {
+    outline: 2px dashed var(--warning-color);
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.drag-hover-combine {
+    outline: 3px dashed var(--success-color);
+    background-color: rgba(76, 175, 80, 0.15);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+} 

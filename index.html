@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教育工具集 - WKW教学资源</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
+            min-height: 100vh;
+        }
+        header {
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        h2 {
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem;
+            color: #2980b9;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+        p {
+            margin-bottom: 1rem;
+        }
+        .projects {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .project-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .project-image {
+            height: 160px;
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+        .math-project {
+            background-image: url('https://img.freepik.com/free-vector/hand-drawn-mathematics-background_23-2148157319.jpg');
+        }
+        .score-project {
+            background-image: url('https://img.freepik.com/free-vector/flat-design-ranking-illustration_23-2149281958.jpg');
+        }
+        .project-info {
+            padding: 1.5rem;
+        }
+        .project-info h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            color: #2c3e50;
+        }
+        .project-info p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .project-link {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .project-link:hover {
+            background-color: #2980b9;
+        }
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+        }
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .container {
+                padding: 1rem;
+            }
+            .projects {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>WKW教学资源平台</h1>
+        <p>优质教育工具与资源集合</p>
+    </header>
+
+    <div class="container">
+        <section>
+            <h2>教育工具集</h2>
+            <p>为师生提供实用的教学和学习工具，提升教学效果和学习体验。</p>
+
+            <div class="projects">
+                <div class="project-card">
+                    <div class="project-image math-project"></div>
+                    <div class="project-info">
+                        <h3>解二元一次方程组</h3>
+                        <p>交互式学习工具，帮助学生理解二元一次方程组的解法过程，直观展示消元法的步骤。</p>
+                        <a href="./解二元一次方程组/index.html" class="project-link">进入工具</a>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image score-project"></div>
+                    <div class="project-info">
+                        <h3>班级积分管理系统</h3>
+                        <p>高效的班级积分记录和管理系统，帮助教师激励学生，培养良好的班级氛围。</p>
+                        <a href="./班级积分管理系统/index.html" class="project-link">进入系统</a>
+                    </div>
+                </div>
+
+                <!-- 未来可添加更多项目卡片 -->
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 WKW教学资源. 保留所有权利.</p>
+        <p>访问 <a href="https://github.com/wkw0517/WKW0517.github.io" target="_blank">GitHub仓库</a> 了解更多信息</p>
+    </footer>
+</body>
+</html> 
