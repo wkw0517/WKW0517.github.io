@@ -752,4 +752,23 @@ button:active {
     background-color: rgba(76, 175, 80, 0.15);
     transform: scale(1.05);
     box-shadow: var(--shadow-md);
+}
+
+/* 触摸拖动相关样式 */
+#touch-clone {
+    opacity: 0.85;
+    box-shadow: 0 0 15px rgba(58, 134, 255, 0.8);
+    z-index: 9999;
+    pointer-events: none;
+    border: 2px solid white;
+    transform: scale(1.2);
+}
+
+/* 禁用页面的默认触摸行为 */
+.equation-blocks, 
+.interactive-equation,
+.equation-row,
+.equation-element,
+.substituted-term {
+    touch-action: none;
 } 

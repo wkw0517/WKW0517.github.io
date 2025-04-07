@@ -16,6 +16,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let dragStartPosition = { x: 0, y: 0 };
     let dropTarget = null;
     
+    // 触摸事件变量
+    let touchDragging = false;
+    let touchElement = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchMoveX = 0;
+    let touchMoveY = 0;
+    
     // 分数缓存系统
     const fractionCache = {
         cache: {},
@@ -400,7 +408,201 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('dragstart', handleDragStart);
         element.addEventListener('dragend', handleDragEnd);
         
+        // 添加触摸事件处理
+        element.addEventListener('touchstart', handleTouchStart, { passive: false });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
         return element;
+    }
+    
+    // 触摸事件处理函数
+    function handleTouchStart(e) {
+        e.preventDefault(); // 阻止默认行为
+        touchDragging = true;
+        touchElement = e.target;
+        
+        // 记录起始触摸位置
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        
+        // 添加视觉反馈
+        touchElement.classList.add('dragging');
+        touchElement.style.opacity = '0.7';
+        touchElement.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.7)';
+        
+        // 创建一个悬浮克隆元素跟随手指移动
+        const clone = touchElement.cloneNode(true);
+        clone.id = 'touch-clone';
+        clone.style.position = 'fixed';
+        clone.style.left = touchStartX + 'px';
+        clone.style.top = touchStartY + 'px';
+        clone.style.zIndex = '1000';
+        clone.style.pointerEvents = 'none';
+        clone.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(clone);
+    }
+    
+    function handleTouchMove(e) {
+        if (!touchDragging) return;
+        e.preventDefault(); // 阻止页面滚动
+        
+        // 更新克隆元素位置
+        const touch = e.touches[0];
+        touchMoveX = touch.clientX;
+        touchMoveY = touch.clientY;
+        
+        const clone = document.getElementById('touch-clone');
+        if (clone) {
+            clone.style.left = touchMoveX + 'px';
+            clone.style.top = touchMoveY + 'px';
+        }
+        
+        // 获取当前触摸点下的元素
+        const elementUnderTouch = document.elementFromPoint(touchMoveX, touchMoveY);
+        
+        // 清除所有悬停效果
+        document.querySelectorAll('.drag-hover-substitute, .drag-hover-move, .drag-hover-combine').forEach(el => {
+            el.classList.remove('drag-hover-substitute', 'drag-hover-move', 'drag-hover-combine');
+        });
+        
+        if (!elementUnderTouch) return;
+        
+        // 获取基本信息
+        const equationElement = touchElement.closest('.interactive-equation');
+        const equationIndex = parseInt(equationElement.dataset.equationIndex);
+        const sourceSide = touchElement.dataset.side;
+        const sourceVariable = touchElement.dataset.variable;
+        
+        // 获取目标信息
+        const targetElement = elementUnderTouch;
+        const isTargetTermElement = targetElement && targetElement.classList.contains('equation-element');
+        
+        // 获取目标方程元素
+        const targetEquationElement = targetElement && targetElement.closest('.interactive-equation');
+        const isDifferentEquation = targetEquationElement && 
+                                targetEquationElement !== equationElement;
+        
+        // 获取目标侧信息
+        let targetSide = null;
+        if (targetElement && targetElement.dataset && targetElement.dataset.side) {
+            targetSide = targetElement.dataset.side;
+        } else if (targetElement) {
+            // 尝试从父元素获取侧信息
+            const sideElement = targetElement.closest('.left-side, .right-side');
+            if (sideElement) {
+                targetSide = sideElement.classList.contains('left-side') ? 'left' : 'right';
+            }
+        }
+        
+        const isDifferentSide = sourceSide !== targetSide;
+        
+        // 检查是否拖到了相同变量的项上
+        const targetVariable = targetElement && targetElement.dataset && targetElement.dataset.variable;
+        const isSameVariable = sourceVariable === targetVariable;
+        
+        // 应用视觉悬停效果
+        if (isDifferentEquation && targetElement && (sourceVariable === 'x' || sourceVariable === 'y')) {
+            // 代入操作悬停效果
+            const highlightTarget = targetElement.closest('.equation-row') || targetElement;
+            highlightTarget.classList.add('drag-hover-substitute');
+        } else if (!isDifferentEquation && isDifferentSide && targetElement) {
+            // 移项操作悬停效果
+            const targetSideElement = targetElement.closest('.left-side, .right-side');
+            if (targetSideElement) {
+                targetSideElement.classList.add('drag-hover-move');
+            }
+        } else if (!isDifferentEquation && !isDifferentSide && isSameVariable && isTargetTermElement) {
+            // 合并同类项悬停效果
+            targetElement.classList.add('drag-hover-combine');
+        }
+    }
+    
+    function handleTouchEnd(e) {
+        if (!touchDragging) return;
+        e.preventDefault();
+        
+        // 移除克隆元素
+        const clone = document.getElementById('touch-clone');
+        if (clone) {
+            document.body.removeChild(clone);
+        }
+        
+        // 清除视觉样式
+        touchElement.classList.remove('dragging');
+        touchElement.style.opacity = '';
+        touchElement.style.boxShadow = '';
+        
+        // 清除所有拖拽悬停效果
+        document.querySelectorAll('.drag-hover-substitute, .drag-hover-move, .drag-hover-combine').forEach(el => {
+            el.classList.remove('drag-hover-substitute', 'drag-hover-move', 'drag-hover-combine');
+        });
+        
+        // 获取方程索引
+        const equationElement = touchElement.closest('.interactive-equation');
+        const equationIndex = parseInt(equationElement.dataset.equationIndex);
+        
+        // 获取最终触摸位置下的元素
+        const targetElement = document.elementFromPoint(touchMoveX, touchMoveY);
+        
+        // 如果没有目标元素，结束操作
+        if (!targetElement) {
+            touchDragging = false;
+            touchElement = null;
+            return;
+        }
+        
+        // 获取拖拽项和目标项的基本信息
+        const sourceSide = touchElement.dataset.side; // 'left' 或 'right'
+        const sourceVariable = touchElement.dataset.variable;
+        
+        // 检查目标是否是方程元素
+        const isTargetTermElement = targetElement && targetElement.classList.contains('equation-element');
+        
+        // 获取目标方程元素
+        const targetEquationElement = targetElement && targetElement.closest('.interactive-equation');
+        
+        // 检查是否是不同方程
+        const isDifferentEquation = targetEquationElement && 
+                                  targetEquationElement !== equationElement;
+                                  
+        // 检查是否拖到了同一方程内但不同的一侧
+        let targetSide = null;
+        if (targetElement && targetElement.dataset && targetElement.dataset.side) {
+            targetSide = targetElement.dataset.side;
+        } else if (targetElement) {
+            // 尝试从父元素获取侧信息
+            const sideElement = targetElement.closest('.left-side, .right-side');
+            if (sideElement) {
+                targetSide = sideElement.classList.contains('left-side') ? 'left' : 'right';
+            }
+        }
+        
+        const isDifferentSide = sourceSide !== targetSide;
+        
+        // 检查是否拖到了相同变量的项上
+        const targetVariable = targetElement && targetElement.dataset && targetElement.dataset.variable;
+        const isSameVariable = sourceVariable === targetVariable;
+        
+        // 处理不同的操作类型
+        if (isDifferentEquation && targetEquationElement) {
+            // 代入操作
+            if (sourceVariable === 'x' || sourceVariable === 'y') {
+                const targetEquationIndex = parseInt(targetEquationElement.dataset.equationIndex);
+                performSubstituteOperation(touchElement, targetElement, equationIndex, targetEquationIndex);
+            }
+        } else if (!isDifferentEquation && isDifferentSide && targetElement) {
+            // 移项操作
+            moveTermToOtherSide(touchElement, equations[equationIndex]);
+        } else if (!isDifferentEquation && !isDifferentSide && isSameVariable && isTargetTermElement) {
+            // 合并同类项
+            performCombineOperation(equationIndex, targetElement);
+        }
+        
+        // 重置触摸状态
+        touchDragging = false;
+        touchElement = null;
     }
     
     // 拖拽事件处理
@@ -2337,6 +2539,11 @@ document.addEventListener('DOMContentLoaded', function() {
         element.draggable = true;
         element.addEventListener('dragstart', handleDragStart);
         element.addEventListener('dragend', handleDragEnd);
+        
+        // 添加触摸事件处理
+        element.addEventListener('touchstart', handleTouchStart, { passive: false });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd, { passive: false });
         
         return element;
     }
