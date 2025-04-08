@@ -1768,6 +1768,29 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // 确保目标元素存在
+        if (!targetElement) {
+            console.error('合并同类项错误: 目标元素不存在');
+            return;
+        }
+        
+        // 确保元素具有必要的数据属性
+        if (!selectedElement.dataset || !selectedElement.dataset.side) {
+            console.error('合并同类项错误: 源元素缺少side属性');
+            return;
+        }
+        
+        if (!targetElement.dataset || !targetElement.dataset.side) {
+            console.error('合并同类项错误: 目标元素缺少side属性');
+            return;
+        }
+        
+        // 确保两个元素在同一侧
+        if (selectedElement.dataset.side !== targetElement.dataset.side) {
+            console.error('合并同类项错误: 源元素和目标元素不在同一侧');
+            return;
+        }
+        
         // 获取被选中元素所在的一侧
         const side = selectedElement.dataset.side === 'left' ? 'leftSide' : 'rightSide';
         
@@ -1790,11 +1813,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const sourceIndex = getTermIndex(selectedElement, eq[side]);
         const targetIndex = getTermIndex(targetElement, eq[side]);
         
+        // 如果索引无效，则取消操作
+        if (sourceIndex === -1 || targetIndex === -1) {
+            console.error('合并同类项错误: 无法找到有效的源项或目标项索引', 
+                {sourceIndex, targetIndex, side, equationIndex});
+            return;
+        }
+        
         // 如果找到了有效的索引
         if (sourceIndex !== -1 && targetIndex !== -1) {
             // 获取要合并的两项
             const sourceTerm = eq[side][sourceIndex];
             const targetTerm = eq[side][targetIndex];
+            
+            // 检查项是否有效
+            if (!sourceTerm || !targetTerm) {
+                console.error('合并同类项错误: 源项或目标项无效', {sourceTerm, targetTerm});
+                return;
+            }
             
             // 使用目标项的位置作为插入位置
             let insertPosition = targetIndex;
@@ -1806,6 +1842,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 处理源项
                 if (sourceTerm.isSubstituted) {
+                    if (!sourceTerm.expressionTerms) {
+                        console.error('合并同类项错误: 代入项缺少expressionTerms属性', sourceTerm);
+                        return;
+                    }
+                    
                     sourceTerm.expressionTerms.forEach(exprTerm => {
                         combinedTerms.push({
                             coefficient: sourceTerm.originalCoeff * exprTerm.coefficient,
@@ -1821,6 +1862,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 处理目标项
                 if (targetTerm.isSubstituted) {
+                    if (!targetTerm.expressionTerms) {
+                        console.error('合并同类项错误: 代入项缺少expressionTerms属性', targetTerm);
+                        return;
+                    }
+                    
                     targetTerm.expressionTerms.forEach(exprTerm => {
                         combinedTerms.push({
                             coefficient: targetTerm.originalCoeff * exprTerm.coefficient,
@@ -1837,6 +1883,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 合并同变量的项
                 const combinedResult = {};
                 for (const term of combinedTerms) {
+                    if (!term || term.variable === undefined) {
+                        console.error('合并同类项错误: 待合并的项无效', term);
+                        continue;
+                    }
+                    
                     const key = term.variable || 'constant';
                     if (!combinedResult[key]) {
                         combinedResult[key] = {
@@ -1850,29 +1901,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 创建合并后的项数组，移除系数为0的项
                 const mergedTerms = Object.values(combinedResult)
-                    .filter(term => Math.abs(term.coefficient) > 0.0001);
+                    .filter(term => term && Math.abs(term.coefficient) > 0.0001);
                 
                 // 从方程中移除源项和目标项
                 const newSideTerms = [...eq[side]];
                 
-                // 处理索引调整，确保正确的插入位置
-                if (sourceIndex < targetIndex) {
-                    // 如果源项在目标项之前，先删除源项，再删除目标项
-                    newSideTerms.splice(sourceIndex, 1); // 删除源项
-                    newSideTerms.splice(targetIndex - 1, 1); // 目标项索引因源项删除而减1
-                    insertPosition = targetIndex - 1; // 插入位置即为调整后的目标项位置
-                } else {
-                    // 如果源项在目标项之后，先删除源项，再删除目标项
-                    newSideTerms.splice(sourceIndex, 1); // 删除源项
-                    newSideTerms.splice(targetIndex, 1); // 目标项索引不受影响
-                    insertPosition = targetIndex; // 插入位置即为目标项位置
-                }
-                
-                // 将合并后的项插入到目标位置
-                if (mergedTerms.length > 0) {
-                    for (let i = 0; i < mergedTerms.length; i++) {
-                        newSideTerms.splice(insertPosition + i, 0, mergedTerms[i]);
+                try {
+                    // 处理索引调整，确保正确的插入位置
+                    if (sourceIndex < targetIndex) {
+                        // 如果源项在目标项之前，先删除源项，再删除目标项
+                        newSideTerms.splice(sourceIndex, 1); // 删除源项
+                        newSideTerms.splice(targetIndex - 1, 1); // 目标项索引因源项删除而减1
+                        insertPosition = targetIndex - 1; // 插入位置即为调整后的目标项位置
+                    } else {
+                        // 如果源项在目标项之后，先删除源项，再删除目标项
+                        newSideTerms.splice(sourceIndex, 1); // 删除源项
+                        newSideTerms.splice(targetIndex, 1); // 目标项索引不受影响
+                        insertPosition = targetIndex; // 插入位置即为目标项位置
                     }
+                    
+                    // 将合并后的项插入到目标位置
+                    if (mergedTerms.length > 0) {
+                        for (let i = 0; i < mergedTerms.length; i++) {
+                            if (insertPosition + i < 0 || insertPosition + i > newSideTerms.length) {
+                                console.error('合并同类项错误: 插入位置超出范围', {
+                                    insertPosition, i, length: newSideTerms.length
+                                });
+                                continue;
+                            }
+                            newSideTerms.splice(insertPosition + i, 0, mergedTerms[i]);
+                        }
+                    }
+                } catch (error) {
+                    console.error('合并同类项操作出错:', error, {
+                        sourceIndex, targetIndex, insertPosition, 
+                        sideLength: newSideTerms.length
+                    });
                 }
                 
                 // 更新方程的对应侧
@@ -1884,29 +1948,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 从方程中移除源项和目标项
                 const newSideTerms = [...eq[side]];
                 
-                // 处理索引调整，确保正确的插入位置
-                if (sourceIndex < targetIndex) {
-                    // 如果源项在目标项之前，先删除源项，再删除目标项
-                    newSideTerms.splice(sourceIndex, 1); // 删除源项
-                    newSideTerms.splice(targetIndex - 1, 1); // 目标项索引因源项删除而减1
-                    insertPosition = targetIndex - 1; // 插入位置即为调整后的目标项位置
-                } else {
-                    // 如果源项在目标项之后，先删除源项，再删除目标项
-                    newSideTerms.splice(sourceIndex, 1); // 删除源项
-                    newSideTerms.splice(targetIndex, 1); // 目标项索引不受影响
-                    insertPosition = targetIndex; // 插入位置即为目标项位置
-                }
-                
-                // 如果合并后的系数不为0，则在目标位置添加合并后的项
-                if (Math.abs(mergedCoefficient) > 0.0001) {
-                    const mergedTerm = {
-                        coefficient: mergedCoefficient,
-                        variable: sourceTerm.variable,
-                        termType: sourceTerm.termType
-                    };
+                try {
+                    // 处理索引调整，确保正确的插入位置
+                    if (sourceIndex < targetIndex) {
+                        // 如果源项在目标项之前，先删除源项，再删除目标项
+                        newSideTerms.splice(sourceIndex, 1); // 删除源项
+                        newSideTerms.splice(targetIndex - 1, 1); // 目标项索引因源项删除而减1
+                        insertPosition = targetIndex - 1; // 插入位置即为调整后的目标项位置
+                    } else {
+                        // 如果源项在目标项之后，先删除源项，再删除目标项
+                        newSideTerms.splice(sourceIndex, 1); // 删除源项
+                        newSideTerms.splice(targetIndex, 1); // 目标项索引不受影响
+                        insertPosition = targetIndex; // 插入位置即为目标项位置
+                    }
                     
-                    // 在目标位置插入合并后的项
-                    newSideTerms.splice(insertPosition, 0, mergedTerm);
+                    // 如果合并后的系数不为0，则在目标位置添加合并后的项
+                    if (Math.abs(mergedCoefficient) > 0.0001) {
+                        const mergedTerm = {
+                            coefficient: mergedCoefficient,
+                            variable: sourceTerm.variable,
+                            termType: sourceTerm.termType
+                        };
+                        
+                        // 检查插入位置是否有效
+                        if (insertPosition < 0 || insertPosition > newSideTerms.length) {
+                            console.error('合并同类项错误: 插入位置超出范围', {
+                                insertPosition, length: newSideTerms.length
+                            });
+                            // 如果插入位置无效，则添加到末尾
+                            newSideTerms.push(mergedTerm);
+                        } else {
+                            // 在目标位置插入合并后的项
+                            newSideTerms.splice(insertPosition, 0, mergedTerm);
+                        }
+                    }
+                } catch (error) {
+                    console.error('合并同类项操作出错:', error, {
+                        sourceIndex, targetIndex, insertPosition, 
+                        sideLength: newSideTerms.length
+                    });
                 }
                 
                 // 更新方程的对应侧
@@ -1940,12 +2020,31 @@ document.addEventListener('DOMContentLoaded', function() {
     function getTermIndex(element, termArray) {
         if (!element || !element.dataset) return -1;
         
+        // 添加空值检查，确保元素拥有必要的数据属性
+        if (!element.dataset.variable || element.dataset.coefficient === undefined) {
+            console.error('元素缺少必要的数据属性:', element);
+            return -1;
+        }
+        
         const variable = element.dataset.variable;
         const coefficient = parseFloat(element.dataset.coefficient);
+        
+        // 检查termArray是否为有效数组
+        if (!Array.isArray(termArray)) {
+            console.error('传入的termArray不是数组:', termArray);
+            return -1;
+        }
         
         // 查找匹配的项
         for (let i = 0; i < termArray.length; i++) {
             const term = termArray[i];
+            
+            // 添加空值检查
+            if (!term) {
+                console.error('数组中的项为null或undefined, 索引:', i);
+                continue;
+            }
+            
             if (term.variable === variable && Math.abs(term.coefficient - coefficient) < 0.0001) {
                 return i;
             }
@@ -2420,34 +2519,49 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('touchstart', function(e) {
             // 如果是长按，准备拖拽
             const touchStartTime = Date.now();
-            const longPressTimeout = setTimeout(function() {
+            const touchTimeoutID = setTimeout(function() {
                 // 长按操作 - 启动拖拽
                 handleTouchStart(e);
             }, 500); // 500ms为长按阈值
             
-            element.addEventListener('touchend', function onTouchEnd() {
+            // 存储超时ID到元素的数据属性中
+            element.dataset.touchTimeoutID = touchTimeoutID;
+            
+            element.addEventListener('touchend', function onTouchEnd(evt) {
+                // 移除自身事件监听器，避免多次触发
+                element.removeEventListener('touchend', onTouchEnd);
+                
+                // 获取并清除超时ID
+                const timeoutID = parseInt(element.dataset.touchTimeoutID);
+                clearTimeout(timeoutID);
+                
                 // 如果是短按，触发点击操作
                 if (Date.now() - touchStartTime < 500) {
-                    clearTimeout(longPressTimeout);
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    
+                    // 查询当前的点击状态
                     const clickState = parseInt(element.dataset.clickState);
                     
-                    switch(clickState) {
-                        case 0: // 初始状态 -> 展开系数但保留括号
-                            expandCoefficient(element);
-                            break;
-                            
-                        case 1: // 展开系数 -> 去括号
-                            removeParentheses(element);
-                            break;
+                    console.log('触摸点击代入项，当前状态:', clickState);
+                    
+                    // 根据当前状态执行相应操作
+                    if (clickState === 0) {
+                        // 初始状态 -> 只扩展系数，保留括号
+                        expandCoefficient(element);
+                    } else if (clickState === 1) {
+                        // 展开系数状态 -> 完全去括号
+                        removeParentheses(element);
                     }
                 }
-                
-                element.removeEventListener('touchend', onTouchEnd);
-            }, { once: true });
+            });
             
             element.addEventListener('touchmove', function onTouchMove() {
-                // 如果移动了手指，取消长按操作
-                clearTimeout(longPressTimeout);
+                // 获取并清除超时ID
+                const timeoutID = parseInt(element.dataset.touchTimeoutID);
+                clearTimeout(timeoutID);
+                
+                // 移除事件监听器
                 element.removeEventListener('touchmove', onTouchMove);
             }, { once: true });
         }, { passive: false });
