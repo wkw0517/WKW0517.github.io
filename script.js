@@ -524,6 +524,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 如果有触摸位置和目标元素，模拟drop事件
         if (lastTouchPosition.x && lastTouchPosition.y && touchDropTarget) {
+            // 防止拖拽到自己，检查触摸目标是否就是自己
+            if (touchDropTarget === touchTarget || touchDropTarget.contains(touchTarget)) {
+                console.log('触摸拖拽：防止拖拽到自己');
+                // 清除所有拖拽悬停效果
+                document.querySelectorAll('.drag-hover-substitute, .drag-hover-move, .drag-hover-combine').forEach(el => {
+                    el.classList.remove('drag-hover-substitute', 'drag-hover-move', 'drag-hover-combine');
+                });
+                
+                // 重置变量
+                touchTarget = null;
+                touchDropTarget = null;
+                selectedElement = null;
+                return;
+            }
+            
             const dropEvent = new Event('drop', { bubbles: true });
             dropEvent.clientX = lastTouchPosition.x;
             dropEvent.clientY = lastTouchPosition.y;
@@ -1594,7 +1609,9 @@ document.addEventListener('DOMContentLoaded', function() {
         multiplyButton.className = 'operation-button multiply-button';
         multiplyButton.textContent = '×';
         multiplyButton.title = '乘以系数';
-        multiplyButton.addEventListener('click', function() {
+        
+        // 统一处理点击操作的函数
+        const handleMultiply = function() {
             // 获取输入值，支持分数
             let value;
             const inputVal = currentScaleValue.value;
@@ -1611,11 +1628,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             performScaleOperation(eqIndex, value);
+        };
+        
+        // 添加点击事件
+        multiplyButton.addEventListener('click', handleMultiply);
+        
+        // 添加触摸事件
+        multiplyButton.addEventListener('touchstart', function(e) {
+            // 标记按钮被触摸
+            multiplyButton.classList.add('button-touched');
         });
         
-        // 为乘法按钮添加触摸事件
-        multiplyButton.addEventListener('touchstart', function(e) {
-            e.preventDefault(); // 防止双击缩放
+        multiplyButton.addEventListener('touchend', function(e) {
+            // 如果按钮被触摸过，则触发操作
+            if (multiplyButton.classList.contains('button-touched')) {
+                e.preventDefault();
+                handleMultiply();
+                multiplyButton.classList.remove('button-touched');
+            }
+        });
+        
+        multiplyButton.addEventListener('touchcancel', function() {
+            multiplyButton.classList.remove('button-touched');
         });
         
         // 除法按钮
@@ -1623,7 +1657,9 @@ document.addEventListener('DOMContentLoaded', function() {
         divideButton.className = 'operation-button divide-button';
         divideButton.textContent = '÷';
         divideButton.title = '除以系数';
-        divideButton.addEventListener('click', function() {
+        
+        // 统一处理点击操作的函数
+        const handleDivide = function() {
             // 获取输入值，支持分数
             let value;
             const inputVal = currentScaleValue.value;
@@ -1640,11 +1676,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             performScaleOperation(eqIndex, 1 / value);
+        };
+        
+        // 添加点击事件
+        divideButton.addEventListener('click', handleDivide);
+        
+        // 添加触摸事件
+        divideButton.addEventListener('touchstart', function(e) {
+            // 标记按钮被触摸
+            divideButton.classList.add('button-touched');
         });
         
-        // 为除法按钮添加触摸事件
-        divideButton.addEventListener('touchstart', function(e) {
-            e.preventDefault(); // 防止双击缩放
+        divideButton.addEventListener('touchend', function(e) {
+            // 如果按钮被触摸过，则触发操作
+            if (divideButton.classList.contains('button-touched')) {
+                e.preventDefault();
+                handleDivide();
+                divideButton.classList.remove('button-touched');
+            }
+        });
+        
+        divideButton.addEventListener('touchcancel', function() {
+            divideButton.classList.remove('button-touched');
         });
         
         operationButtons.appendChild(multiplyButton);
@@ -2586,6 +2639,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if(closestElement) {
                 targetElement = closestElement;
             }
+        }
+        
+        // 防止拖拽到自己，造成项重复
+        if (targetElement === selectedElement) {
+            console.log('防止拖拽到自己');
+            selectedElement = null;
+            return;
         }
         
         // 获取拖拽项和目标项的基本信息

@@ -653,9 +653,17 @@ button:active {
     box-shadow: var(--shadow-md);
 }
 
-.operation-button:active {
+.operation-button:active, .operation-button.button-touched {
     transform: translateY(0);
     box-shadow: var(--shadow-sm);
+    background-color: #1a5cbf;
+}
+
+/* 添加触摸时的视觉反馈 */
+.button-touched {
+    background-color: #1a5cbf !important;
+    transform: scale(0.95) !important;
+    transition: transform 0.1s ease-in-out !important;
 }
 
 /* 简化的替换项样式 */
