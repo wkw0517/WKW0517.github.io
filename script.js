@@ -264,6 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const zeroElement = document.createElement('div');
             zeroElement.className = 'equation-element constant';
             zeroElement.textContent = '0';
+            zeroElement.dataset.variable = ''; // 设置为空字符串，表示常数项
+            zeroElement.dataset.coefficient = 0; // 系数为0
+            zeroElement.dataset.termType = 'constant'; // 设置termType
+            zeroElement.dataset.side = 'left'; // 设置side
             leftSideContainer.appendChild(zeroElement);
         }
         
@@ -319,6 +323,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const zeroElement = document.createElement('div');
             zeroElement.className = 'equation-element constant';
             zeroElement.textContent = '0';
+            zeroElement.dataset.variable = ''; // 设置为空字符串，表示常数项
+            zeroElement.dataset.coefficient = 0; // 系数为0
+            zeroElement.dataset.termType = 'constant'; // 设置termType
+            zeroElement.dataset.side = 'right'; // 设置side
             rightSideContainer.appendChild(zeroElement);
         }
         
@@ -355,8 +363,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 正常的项处理
         const element = document.createElement('div');
         element.className = `equation-element ${term.termType}`;
-        element.dataset.variable = term.variable;
+        element.dataset.variable = term.variable || ''; // 确保常数项时设置为空字符串，而不是undefined
         element.dataset.coefficient = term.coefficient;
+        element.dataset.termType = term.termType; // 额外存储termType，便于常数项识别
         element.style.height = '40px'; // 确保高度一致
         
         // 处理系数显示
@@ -399,7 +408,12 @@ document.addEventListener('DOMContentLoaded', function() {
             element.parentNode?.insertBefore(operator, element);
         }
         
-        element.innerHTML = `${displayHtml}${term.variable}`;
+        // 为常数项设置特殊处理
+        if (!term.variable || term.variable === '') {
+            element.innerHTML = displayHtml; // 常数项只显示系数
+        } else {
+            element.innerHTML = `${displayHtml}${term.variable}`; // 变量项显示系数和变量
+        }
         
         // 添加拖拽功能
         element.draggable = true;
@@ -1156,7 +1170,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const zeroElement = document.createElement('div');
                 zeroElement.className = 'equation-element constant';
                 zeroElement.textContent = '0';
-                zeroElement.dataset.side = 'left';
+                zeroElement.dataset.variable = ''; // 设置为空字符串，表示常数项
+                zeroElement.dataset.coefficient = 0; // 系数为0
+                zeroElement.dataset.termType = 'constant'; // 设置termType
+                zeroElement.dataset.side = 'left'; // 设置side
                 leftSideContainer.appendChild(zeroElement);
             }
             
@@ -1214,7 +1231,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const zeroElement = document.createElement('div');
                 zeroElement.className = 'equation-element constant';
                 zeroElement.textContent = '0';
-                zeroElement.dataset.side = 'right';
+                zeroElement.dataset.variable = ''; // 设置为空字符串，表示常数项
+                zeroElement.dataset.coefficient = 0; // 系数为0
+                zeroElement.dataset.termType = 'constant'; // 设置termType
+                zeroElement.dataset.side = 'right'; // 设置side
                 rightSideContainer.appendChild(zeroElement);
             }
             
@@ -2021,13 +2041,24 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!element || !element.dataset) return -1;
         
         // 添加空值检查，确保元素拥有必要的数据属性
-        if (!element.dataset.variable || element.dataset.coefficient === undefined) {
-            console.error('元素缺少必要的数据属性:', element);
+        if (element.dataset.coefficient === undefined) {
+            console.error('元素缺少coefficient数据属性:', element);
             return -1;
         }
         
-        const variable = element.dataset.variable;
+        // 为了处理常数项，我们需要特殊判断
+        const isConstant = element.classList.contains('constant') || element.dataset.termType === 'constant';
+        
+        // 获取元素的变量和系数
+        const variable = element.dataset.variable; // 可能是''空字符串，表示常数项
         const coefficient = parseFloat(element.dataset.coefficient);
+        
+        console.log('查找项索引:', {
+            variable: variable,
+            coefficient: coefficient,
+            isConstant: isConstant,
+            element: element
+        });
         
         // 检查termArray是否为有效数组
         if (!Array.isArray(termArray)) {
@@ -2045,11 +2076,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 continue;
             }
             
-            if (term.variable === variable && Math.abs(term.coefficient - coefficient) < 0.0001) {
-                return i;
+            // 常数项特殊处理 - 常数项的variable为空字符串或undefined
+            if (isConstant) {
+                // 对于常数项，我们只需要比较系数和termType
+                if ((term.variable === '' || term.variable === undefined) && 
+                    term.termType === 'constant' && 
+                    Math.abs(term.coefficient - coefficient) < 0.0001) {
+                    console.log('找到常数项匹配:', i, term);
+                    return i;
+                }
+            } else {
+                // 对于变量项，比较变量名和系数
+                if (term.variable === variable && Math.abs(term.coefficient - coefficient) < 0.0001) {
+                    console.log('找到变量项匹配:', i, term);
+                    return i;
+                }
             }
         }
         
+        console.log('未找到匹配项');
         return -1;
     }
     
