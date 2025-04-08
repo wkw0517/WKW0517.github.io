@@ -1796,6 +1796,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const sourceTerm = eq[side][sourceIndex];
             const targetTerm = eq[side][targetIndex];
             
+            // 使用目标项的位置作为插入位置
+            let insertPosition = targetIndex;
+            
             // 合并这两项
             if (sourceTerm.isSubstituted || targetTerm.isSubstituted) {
                 // 如果有代入项，展开并处理
@@ -1851,42 +1854,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 从方程中移除源项和目标项
                 const newSideTerms = [...eq[side]];
-                // 需要考虑索引的变化：如果sourceIndex > targetIndex，移除后索引会改变
-                if (sourceIndex > targetIndex) {
-                    newSideTerms.splice(sourceIndex, 1);
-                    newSideTerms.splice(targetIndex, 1);
+                
+                // 处理索引调整，确保正确的插入位置
+                if (sourceIndex < targetIndex) {
+                    // 如果源项在目标项之前，先删除源项，再删除目标项
+                    newSideTerms.splice(sourceIndex, 1); // 删除源项
+                    newSideTerms.splice(targetIndex - 1, 1); // 目标项索引因源项删除而减1
+                    insertPosition = targetIndex - 1; // 插入位置即为调整后的目标项位置
                 } else {
-                    newSideTerms.splice(targetIndex, 1);
-                    newSideTerms.splice(sourceIndex, 1);
+                    // 如果源项在目标项之后，先删除源项，再删除目标项
+                    newSideTerms.splice(sourceIndex, 1); // 删除源项
+                    newSideTerms.splice(targetIndex, 1); // 目标项索引不受影响
+                    insertPosition = targetIndex; // 插入位置即为目标项位置
                 }
                 
-                // 将合并后的项添加到方程中
-                newEquation[side] = [...newSideTerms, ...mergedTerms];
+                // 将合并后的项插入到目标位置
+                if (mergedTerms.length > 0) {
+                    for (let i = 0; i < mergedTerms.length; i++) {
+                        newSideTerms.splice(insertPosition + i, 0, mergedTerms[i]);
+                    }
+                }
+                
+                // 更新方程的对应侧
+                newEquation[side] = newSideTerms;
             } else {
                 // 简单合并两个常规项
                 let mergedCoefficient = sourceTerm.coefficient + targetTerm.coefficient;
                 
                 // 从方程中移除源项和目标项
                 const newSideTerms = [...eq[side]];
-                if (sourceIndex > targetIndex) {
-                    newSideTerms.splice(sourceIndex, 1);
-                    newSideTerms.splice(targetIndex, 1);
+                
+                // 处理索引调整，确保正确的插入位置
+                if (sourceIndex < targetIndex) {
+                    // 如果源项在目标项之前，先删除源项，再删除目标项
+                    newSideTerms.splice(sourceIndex, 1); // 删除源项
+                    newSideTerms.splice(targetIndex - 1, 1); // 目标项索引因源项删除而减1
+                    insertPosition = targetIndex - 1; // 插入位置即为调整后的目标项位置
                 } else {
-                    newSideTerms.splice(targetIndex, 1);
-                    newSideTerms.splice(sourceIndex, 1);
+                    // 如果源项在目标项之后，先删除源项，再删除目标项
+                    newSideTerms.splice(sourceIndex, 1); // 删除源项
+                    newSideTerms.splice(targetIndex, 1); // 目标项索引不受影响
+                    insertPosition = targetIndex; // 插入位置即为目标项位置
                 }
                 
-                // 如果合并后的系数不为0，则添加合并后的项
+                // 如果合并后的系数不为0，则在目标位置添加合并后的项
                 if (Math.abs(mergedCoefficient) > 0.0001) {
                     const mergedTerm = {
                         coefficient: mergedCoefficient,
                         variable: sourceTerm.variable,
                         termType: sourceTerm.termType
                     };
-                    newEquation[side] = [...newSideTerms, mergedTerm];
-                } else {
-                    newEquation[side] = newSideTerms;
+                    
+                    // 在目标位置插入合并后的项
+                    newSideTerms.splice(insertPosition, 0, mergedTerm);
                 }
+                
+                // 更新方程的对应侧
+                newEquation[side] = newSideTerms;
             }
         }
         
@@ -2507,6 +2531,9 @@ document.addEventListener('DOMContentLoaded', function() {
         element.appendChild(expandedLeftBracket);
         element.appendChild(expandedExprPart);
         element.appendChild(expandedRightBracket);
+        
+        // 不立即进行去括号操作，只进行系数扩展
+        console.log('完成系数扩展，保留括号');
     }
     
     // 去括号并应用变号规则的函数
